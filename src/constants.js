@@ -1,0 +1,242 @@
+export const ANALYZER_WEIGHTS = {
+  promptInjection: 2,
+  shadowFeatures: 2,
+  exfiltration: 1.5,
+  secretsAndCreds: 1.5,
+  dangerousPerms: 1,
+  postinstall: 1,
+};
+
+export const SEVERITY_PENALTY = {
+  high: 25,
+  medium: 10,
+  low: 5,
+};
+
+export const SKIP_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "venv",
+  "dist",
+  "build",
+  ".next",
+  ".venv",
+  "target",
+  ".turbo",
+  ".cache",
+  "coverage",
+  "__pycache__",
+]);
+
+export const EXT_WHITELIST = new Set([
+  ".md",
+  ".mdx",
+  ".sh",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".ts",
+  ".tsx",
+  ".py",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".bash",
+  ".zsh",
+  ".env",
+  ".envrc",
+  ".ps1",
+]);
+
+export const NAME_WHITELIST = new Set([
+  "package.json",
+  "SKILL.md",
+  "README.md",
+  "readme.md",
+  "Readme.md",
+  "setup.py",
+  "pyproject.toml",
+  "Dockerfile",
+  "dockerfile",
+  "Makefile",
+  "makefile",
+  "justfile",
+  "Justfile",
+  "install.sh",
+  "setup.sh",
+  "bootstrap.sh",
+  ".env",
+  ".env.local",
+  ".env.example",
+  ".envrc",
+  "Procfile",
+]);
+
+export const SIZE_CAP_BYTES = 1024 * 1024;
+
+export const URL_HTTP_REGEX =
+  /https?:\/\/[^\s`'")>\]]+/gi;
+
+export const EXFIL_PLACEHOLDER_HOSTS_DROP = new Set([
+  "example.com",
+  "www.example.com",
+  "localhost",
+  "w3.org",
+  "www.w3.org",
+]);
+
+export const EXFIL_PLACEHOLDER_SUFFIXES_LOW = [
+  ".example.com",
+  ".example.org",
+  ".example.net",
+  ".test",
+  ".invalid",
+  ".localhost",
+];
+
+export const CRITICAL_RULES = new Set([
+  "tool-coercion",
+  "exfil-disguise",
+  "jailbreak-markers",
+  "unicode-evasion",
+  "image-alt-injection",
+
+  "blacklist-domain",
+  "obfuscated-ip-hex",
+  "obfuscated-ip-decimal",
+  "dns-exfil-pattern",
+  "base64-encoded-blacklist-url",
+
+  "reverse-shell",
+  "credential-harvest",
+  "browser-cookie-harvest",
+  "linux-keyring-harvest",
+  "windows-lolbin",
+  "firewall-disable",
+  "kernel-module-load",
+  "storage-wipe",
+  "persistence",
+  "powershell-iex",
+
+  "openai-key",
+  "aws-secret",
+  "aws-access",
+  "github-token",
+  "slack-token",
+  "stripe-secret",
+  "google-api-key",
+  "npm-token",
+  "heroku-key",
+  "sendgrid-key",
+  "azure-storage-key",
+  "gcp-service-account",
+  "private-key-block",
+  "mongodb-uri-creds",
+  "mysql-uri-creds",
+  "redis-uri-creds",
+
+  "curl-pipe-sh",
+  "npm-preinstall-risk",
+  "npm-postinstall-risk",
+  "npm-prepare-risk",
+  "npm-prepublish-risk",
+  "npm-prepack-risk",
+  "committed-git-hook",
+  "dockerfile-curl-pipe",
+
+  "time-bomb",
+  "invocation-bomb",
+]);
+
+export const ANALYZER_PENALTY_CAP = {
+  exfiltration: 40,
+  shadowFeatures: 40,
+  dangerousPerms: 60,
+  promptInjection: 60,
+  secretsAndCreds: 40,
+  postinstall: 60,
+};
+
+export const TOTAL_PENALTY_CAP_NONMALICIOUS = 42;
+
+export const EXFIL_WHITELIST_HOSTS = new Set([
+  "github.com",
+  "www.github.com",
+  "raw.githubusercontent.com",
+  "api.github.com",
+  "gist.github.com",
+  "npmjs.com",
+  "www.npmjs.com",
+  "pypi.org",
+  "docs.anthropic.com",
+  "anthropic.com",
+  "www.anthropic.com",
+  "registry.npmjs.org",
+  "cdn.jsdelivr.net",
+  "unpkg.com",
+  "cdnjs.cloudflare.com",
+  "developer.mozilla.org",
+  "nodejs.org",
+  "python.org",
+  "docs.python.org",
+  "img.shields.io",
+  "shields.io",
+  "em-content.zobj.net",
+  "arxiv.org",
+  "www.arxiv.org",
+  "api.star-history.com",
+  "star-history.com",
+  "revu.cards",
+  "www.revu.cards",
+]);
+
+export const SHORTENER_HOSTS = new Set([
+  "bit.ly",
+  "tinyurl.com",
+  "t.co",
+  "goo.gl",
+  "is.gd",
+  "ow.ly",
+  "buff.ly",
+  "shorturl.at",
+  "rb.gy",
+  "cutt.ly",
+  "rebrand.ly",
+]);
+
+export const BLACKLIST_HOST_PATTERNS = [
+  /(^|\.)webhook\.site$/i,
+  /(^|\.)requestbin\./i,
+  /\brequestbin\b/i,
+  /(^|\.)ngrok\.io$/i,
+  /(^|\.)ngrok-free\.app$/i,
+  /(^|\.)ngrok\.app$/i,
+  /(^|\.)pipedream\.net$/i,
+  /^pipedream\.com$/i,
+  /hooks\.zapier\.com/i,
+  /hook\.eu\d*\.make\.com/i,
+  /hook\.integromat\.com/i,
+  /hooks\.slack\.com/i,
+  /discord(app)?\.com\/api\/webhooks/i,
+  /api\.telegram\.org\/bot/i,
+  /(^|\.)pastebin\.com$/i,
+  /^transfer\.sh$/i,
+  /ghostbin/i,
+  /hastebin/i,
+  /controlc\.com/i,
+  /paste\.ee/i,
+  /0x0\.st/i,
+  /dpaste\./i,
+  /termbin\.com/i,
+  /catbox\.moe/i,
+  /file\.io/i,
+  /gofile\.io/i,
+  /anonfiles/i,
+  /bashupload\.com/i,
+  /beeceptor\.com/i,
+  /mockbin/i,
+  /burpcollaborator/i,
+  /oastify\.com/i,
+  /interact\.sh/i,
+];
