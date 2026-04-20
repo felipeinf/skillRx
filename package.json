@@ -1,0 +1,65 @@
+{
+  "name": "skillrx",
+  "version": "0.9.0",
+  "description": "Security scanner for AI agent skills and plugins. Scans Claude Code, Codex, Cursor, Aider, Continue.dev, MCP servers and 40+ other agent ecosystems before you install them.",
+  "type": "module",
+  "bin": {
+    "skillrx": "bin/skillrx.js"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai-agent",
+    "security",
+    "static-analysis",
+    "scanner",
+    "claude-code",
+    "codex",
+    "cursor",
+    "aider",
+    "continue",
+    "mcp",
+    "skills",
+    "plugin",
+    "prompt-injection"
+  ],
+  "homepage": "https://github.com/felipeinf/skillrx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/felipeinf/skillrx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/felipeinf/skillrx/issues"
+  },
+  "author": "felipeinf <100pipeee@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "bin",
+    "src",
+    ".claude-plugin",
+    "img",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:network": "SKILLRX_NETWORK_TESTS=1 node --test test/real-repos.test.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ora": "^8.2.0",
+    "p-limit": "^6.1.0",
+    "simple-git": "^3.27.0",
+    "tmp": "^0.2.3"
+  }
+}
