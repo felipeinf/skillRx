@@ -67,6 +67,9 @@ export function analyzeShadowFeatures(parsedFiles) {
   const undocumented = [];
   for (const u of actualUrls) {
     try {
+      if (/package-lock\.json$/i.test(u.file) || u.file.endsWith("package-lock.json")) {
+        continue;
+      }
       const h = hostnameFromUrl(u.url);
       if (!h) {
         continue;
