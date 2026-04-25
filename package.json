@@ -1,7 +1,7 @@
 {
   "name": "skillrx",
   "version": "0.9.0",
-  "description": "Security scanner for AI agent skills and plugins. Scans Claude Code, Codex, Cursor, Aider, Continue.dev, MCP servers and 40+ other agent ecosystems before you install them.",
+  "description": "Skill RX is a security scanner for AI agent skills and plugins. Scans Claude Code, Codex, Cursor, Aider, Continue.dev, MCP servers and 40+ other agent ecosystems before you install them.",
   "type": "module",
   "bin": {
     "skillrx": "bin/skillrx.js"
