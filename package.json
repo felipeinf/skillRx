@@ -15,18 +15,17 @@
   },
   "keywords": [
     "ai-agent",
+    "agents",
     "security",
-    "static-analysis",
-    "scanner",
-    "claude-code",
-    "codex",
-    "cursor",
-    "aider",
-    "continue",
-    "mcp",
     "skills",
     "plugin",
-    "prompt-injection"
+    "prompt-injection",
+    "cursor",
+    "codex-plugins",
+    "codex",
+    "claude-code",
+    "claude-code-plugin",
+    "claude-skills"
   ],
   "homepage": "https://github.com/felipeinf/skillrx#readme",
   "repository": {
