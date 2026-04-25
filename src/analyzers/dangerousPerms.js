@@ -1,11 +1,16 @@
-const SENSITIVE_PATH_RE =
-  /~\/\.(ssh|aws|claude|gnupg|config)(\/|\b)/;
+const SENSITIVE_PATH_HIGH_RE =
+  /~\/\.(ssh|aws|gnupg|config)(\/|\b)/g;
+
+const CLAUDE_PATH_RE = /~\/\.claude(?:\/[^\s'"\`)]*)?/g;
 
 const REVERSE_SHELL_RE =
   /bash\s+-i\s+>&|\/dev\/tcp\/|nc\s+[^;\n]*\s+-e|python\s+-c\s+['"]import\s+socket/;
 
-const OBFUSC_SHELL_RE =
-  /base64\s+[-‑]?\s*d\s*\|\s*(ba)?sh|\\x[0-9a-f]{2}/i;
+const BASE64_PIPE_SHELL_RE =
+  /base64\s+[-‑]?\s*d\s*\|\s*(ba|z)?sh\b/i;
+
+const HEX_SHELL_PIPE_RE =
+  /(?:echo|printf)\s+['"][^'"]{0,400}(?:\\x[0-9a-f]{2}){4,}[^'"]*['"]\s*\|\s*(ba|z)?sh\b/i;
 
 const PERSIST_RE =
   /\b(crontab|launchctl)\b|>>\s*~\/\.(bashrc|zshrc)/;
@@ -34,6 +39,84 @@ const KEYRING_HARVEST_RE =
   /\b(secret-tool\s+(lookup|search)|gnome-keyring|pass\s+show)\b/;
 
 const ETC_SHADOW_RE = /\/etc\/(shadow|sudoers|passwd)\b(?!.*\|)/;
+
+function countHexBytesInRun(t, startIdx) {
+  let i = startIdx;
+  let n = 0;
+  while (i + 3 < t.length) {
+    const pair = t.slice(i, i + 4);
+    if (!/^\\x[0-9a-f]{2}$/i.test(pair)) {
+      break;
+    }
+    n += 1;
+    i += 4;
+  }
+  return n;
+}
+
+function lineTextAtIndex(t, idx) {
+  const ls = t.lastIndexOf("\n", idx - 1) + 1;
+  const le = t.indexOf("\n", idx);
+  return t.slice(ls, le === -1 ? t.length : le);
+}
+
+function isLikelyAnsiOrJsHexFalsePositive(t, matchIndex) {
+  const line = lineTextAtIndex(t, matchIndex);
+  if (
+    /stripAnsi|VT100|\\\\x1b|\/\\x1b|ansi|color code|replace\(\s*\/\\^\\?\\x1b/i.test(line)
+  ) {
+    return true;
+  }
+  if (/\.(mjs|js|ts|tsx|jsx)\b/.test(t) && /err\.stdout|stderr|chunk\.toString|encoding/i.test(line)) {
+    return true;
+  }
+  return false;
+}
+
+function isDocumentedClaudePathInMarkdown(file, t, pathMatchIndex) {
+  if (!/\.md$/i.test(file)) {
+    return false;
+  }
+  const after = t.slice(pathMatchIndex, pathMatchIndex + 48);
+  if (!/\.claude\//.test(after)) {
+    return false;
+  }
+  const inPluginOrReadme =
+    /(?:^|\/)(?:commands|skills|plugins|docs?)\//i.test(file) ||
+    /(^|\/)README\.md$/i.test(file) ||
+    /\/README\.md$/i.test(file);
+  if (!inPluginOrReadme) {
+    return false;
+  }
+  const line = lineTextAtIndex(t, pathMatchIndex);
+  return (
+    /execute-plan|plan|\.claude\/plans|claude code|\/cursor?:|save|markdown.*plan/i.test(line) ||
+    /`~?\/\.claude\//.test(line)
+  );
+}
+
+const CLAUDE_PATH_BENIGN_LINE_RE =
+  /path\.(join|resolve)\s*\(|\bhomedir\s*\(|\bos\.homedir\s*\(|process\.env\.(HOME|USERPROFILE)|~\/\.claude\/(hooks|plugins|settings|plans|projects|cache|mcp[^/\s'"\`)]*)\/|~\/\.claude\/?[,\s)\}\]"';`]/;
+
+const FILE_NETWORK_OR_EXFIL_RE =
+  /\bfetch\s*\(|\baxios\b|node-fetch|XMLHttpRequest|\bhttps?:\/\/[^\s'"`)\]]+|\bwebhook\b|requestbin|\.post\s*\(|\brequest\s*\(|\$\.post\b/i;
+
+const LINE_SECRET_CONTEXT_RE =
+  /\b(token|api[_-]?key|password|bearer|secret|credential)\b/i;
+
+function isClaudePathBenignInCode(file, t, pathMatchIndex) {
+  if (!/\.(mjs|js|cjs|ts|tsx|py|sh|bash|zsh)$/i.test(file)) {
+    return false;
+  }
+  if (FILE_NETWORK_OR_EXFIL_RE.test(t)) {
+    return false;
+  }
+  const line = lineTextAtIndex(t, pathMatchIndex);
+  if (LINE_SECRET_CONTEXT_RE.test(line)) {
+    return false;
+  }
+  return CLAUDE_PATH_BENIGN_LINE_RE.test(line);
+}
 
 function looksLikeAgentConfigFile(relPath) {
   if (/\.(json|ya?ml|toml)$/i.test(relPath)) {
@@ -81,19 +164,64 @@ export function analyzeDangerousPerms(parsedFiles) {
         message: "rm -rf outside obvious temp paths",
       });
     }
-    if (SENSITIVE_PATH_RE.test(t)) {
-      const idx = t.search(SENSITIVE_PATH_RE);
-      const line = t.slice(0, idx).split(/\r?\n/).length;
+    const claudePathSeen = new Set();
+    for (const m of t.matchAll(SENSITIVE_PATH_HIGH_RE)) {
+      const idx = m.index;
+      const lineN = t.slice(0, idx).split(/\r?\n/).length;
+      const excerpt = t.slice(idx, Math.min(t.length, idx + 40));
       findings.push({
         analyzer,
         severity: "high",
         file,
-        line,
+        line: lineN,
         rule: "sensitive-path",
-        excerpt: t.slice(idx, idx + 40),
-        message: "Reference to sensitive user directory",
+        excerpt,
+        message: "Reference to sensitive user directory (ssh, aws, gnupg, or .config)",
       });
     }
+    SENSITIVE_PATH_HIGH_RE.lastIndex = 0;
+    for (const m of t.matchAll(CLAUDE_PATH_RE)) {
+      const idx = m.index;
+      const lineN = t.slice(0, idx).split(/\r?\n/).length;
+      const key = `${lineN}`;
+      if (claudePathSeen.has(key)) {
+        continue;
+      }
+      claudePathSeen.add(key);
+      const excerpt = t.slice(idx, Math.min(t.length, idx + 40));
+      if (isDocumentedClaudePathInMarkdown(file, t, idx)) {
+        findings.push({
+          analyzer,
+          severity: "low",
+          file,
+          line: lineN,
+          rule: "documented-config-path",
+          excerpt,
+          message: "Documented product path to ~/.claude in plugin or command help",
+        });
+      } else if (isClaudePathBenignInCode(file, t, idx)) {
+        findings.push({
+          analyzer,
+          severity: "low",
+          file,
+          line: lineN,
+          rule: "documented-config-path",
+          excerpt,
+          message: "Expected agent config path in plugin or CLI code (no network exfil in file)",
+        });
+      } else {
+        findings.push({
+          analyzer,
+          severity: "high",
+          file,
+          line: lineN,
+          rule: "sensitive-path",
+          excerpt,
+          message: "Reference to sensitive user directory",
+        });
+      }
+    }
+    CLAUDE_PATH_RE.lastIndex = 0;
     if (/security\s+find-generic-password|\.bash_history|\.zsh_history|git\s+config\s+--get\s+credential\.helper/.test(
       t,
     )) {
@@ -120,8 +248,21 @@ export function analyzeDangerousPerms(parsedFiles) {
         message: "Possible reverse shell pattern",
       });
     }
-    if (OBFUSC_SHELL_RE.test(t)) {
-      const idx = t.search(OBFUSC_SHELL_RE);
+    if (HEX_SHELL_PIPE_RE.test(t)) {
+      const idx = t.search(HEX_SHELL_PIPE_RE);
+      const line = t.slice(0, idx).split(/\r?\n/).length;
+      findings.push({
+        analyzer,
+        severity: "high",
+        file,
+        line,
+        rule: "hex-shell-pipe",
+        excerpt: t.slice(idx, idx + 50),
+        message: "Piped shell after long hex-escaped payload",
+      });
+    }
+    if (BASE64_PIPE_SHELL_RE.test(t)) {
+      const idx = t.search(BASE64_PIPE_SHELL_RE);
       const line = t.slice(0, idx).split(/\r?\n/).length;
       findings.push({
         analyzer,
@@ -129,9 +270,33 @@ export function analyzeDangerousPerms(parsedFiles) {
         file,
         line,
         rule: "obfuscated-shell",
-        excerpt: "obfuscated shell",
-        message: "Obfuscated shell execution",
+        excerpt: t.slice(idx, idx + 40),
+        message: "Obfuscated shell execution (base64 pipe to shell)",
       });
+    }
+    const hexPairRe = /\\x[0-9a-f]{2}/gi;
+    let hm;
+    while ((hm = hexPairRe.exec(t)) !== null) {
+      if (isLikelyAnsiOrJsHexFalsePositive(t, hm.index)) {
+        hexPairRe.lastIndex = hm.index + 4;
+        continue;
+      }
+      const runLen = countHexBytesInRun(t, hm.index);
+      if (runLen < 4) {
+        hexPairRe.lastIndex = hm.index + 4;
+        continue;
+      }
+      const line = t.slice(0, hm.index).split(/\r?\n/).length;
+      findings.push({
+        analyzer,
+        severity: "medium",
+        file,
+        line,
+        rule: "hex-escape-sequences",
+        excerpt: t.slice(hm.index, hm.index + Math.min(32, runLen * 4)),
+        message: "Consecutive \\xNN escapes (verify not encoded payload in JS)",
+      });
+      hexPairRe.lastIndex = hm.index + runLen * 4;
     }
     if (PERSIST_RE.test(t)) {
       findings.push({
