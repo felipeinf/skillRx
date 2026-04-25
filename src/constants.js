@@ -96,7 +96,9 @@ export const EXFIL_PLACEHOLDER_SUFFIXES_LOW = [
 ];
 
 export const CRITICAL_RULES = new Set([
-  "tool-coercion",
+  "tool-coercion-strong",
+  "frontmatter-bash-star",
+  "hex-shell-pipe",
   "exfil-disguise",
   "jailbreak-markers",
   "unicode-evasion",
@@ -189,6 +191,26 @@ export const EXFIL_WHITELIST_HOSTS = new Set([
   "star-history.com",
   "revu.cards",
   "www.revu.cards",
+  "claude.ai",
+  "www.claude.ai",
+  "cursor.com",
+  "www.cursor.com",
+  "cursor.sh",
+  "www.cursor.sh",
+  "openai.com",
+  "platform.openai.com",
+  "aider.chat",
+  "www.aider.chat",
+  "continue.dev",
+  "www.continue.dev",
+  "vercel.com",
+  "www.vercel.com",
+  "json-schema.org",
+  "www.json-schema.org",
+  "schemastore.org",
+  "www.schemastore.org",
+  "opencollective.com",
+  "www.opencollective.com",
 ]);
 
 export const SHORTENER_HOSTS = new Set([
