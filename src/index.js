@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import ora from "ora";
 import chalk from "chalk";
@@ -11,6 +12,8 @@ import { parseWorkspace } from "./parser.js";
 import { runAllAnalyzers } from "./analyzers/index.js";
 import { dedupeFindings, scoreFindings } from "./scorer.js";
 import { formatReport } from "./reporter.js";
+
+const { version: SKILLRX_VERSION } = createRequire(import.meta.url)("../package.json");
 
 const PHASE_LABEL = {
   resolve: "Resolviendo origen",
@@ -78,7 +81,7 @@ export async function runCli(argv) {
   program
     .name("skillrx")
     .description("Static analysis scanner for Claude Code plugins and skills")
-    .version("0.1.0")
+    .version(SKILLRX_VERSION)
     .argument("<target>", "Local path, owner/repo, or https Git URL")
     .option("--json", "Output JSON report")
     .option(

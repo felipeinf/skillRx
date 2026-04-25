@@ -1,6 +1,6 @@
 {
   "name": "skillrx",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Security scanner for AI agent skills and plugins (Claude Code, Codex, Cursor, and 40+ more)",
   "author": "felipeinf",
   "homepage": "https://www.npmjs.com/package/skillrx",
